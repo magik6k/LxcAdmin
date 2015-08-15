@@ -1,0 +1,45 @@
+apply plugin: 'scala'
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+buildscript {
+    repositories {
+		mavenLocal()
+        mavenCentral()
+        jcenter()
+    }
+    dependencies {
+    	classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.0'
+  	}
+}
+
+sourceSets {
+    main {
+    	resources{
+    		srcDir 'resources'
+    	}
+    }
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+	testCompile group: 'junit', name: 'junit', version: '4.0'
+    compile 'org.scala-lang:scala-library:2.11.6'
+    testRuntime 'org.scala-lang.modules:scala-xml_2.11:1.0.3'
+	compile 'net.magik6k.jwwf:jwwf:0.3.0'
+}
+
+javadoc {
+	include 'net/magik6k/lxcadmin/**'
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+	from 'build/docs/javadoc'
+	classifier 'javadoc'
+}
+
