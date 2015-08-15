@@ -4,6 +4,8 @@ import net.magik6k.jwwf.core.JwwfServer
 import net.magik6k.lxcadmin.plugin.TimerPlugin
 import net.magik6k.lxcadmin.widget.{MemMonProvider, CPUMonProvider}
 
+import scala.util.Try
+
 object Main {
 	def main(args: Array[String]) {
 		new Thread(new Runnable {
@@ -16,7 +18,8 @@ object Main {
 			}
 		}).start()
 
-		val server = new JwwfServer(8888)
+		val server = new JwwfServer(if (args.length > 0) args(0).toInt else 8888)
+		Try { if (args.length > 1) server.setApiUrl(args(1)) }
 		server.attachPlugin(TimerPlugin)
 		server.bindWebapp(classOf[Client])
 		server.start()
