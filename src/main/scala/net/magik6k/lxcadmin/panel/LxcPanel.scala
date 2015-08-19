@@ -27,7 +27,6 @@ class LxcPanel extends Panel(12, 1) {
 
 	val containerList = systems.map(file => new Container(file.getName))
 	containerList.foreach(container => containers.put(new NamedPanel(container, "Container <b>"+container.name+"</b>", Type.INFO).asPanel(12)))
-	//containers.put(new NamedPanel(new Container("magik6k"), "Container <b>magik6k</b>", Type.INFO).asPanel(12))
 
 	put(containers)
 

@@ -1,5 +1,7 @@
 package net.magik6k.lxcadmin
 
+import java.lang.management.ManagementFactory
+
 import net.magik6k.jwwf.core.JwwfServer
 import net.magik6k.lxcadmin.plugin.TimerPlugin
 import net.magik6k.lxcadmin.widget.{MemMonProvider, CPUMonProvider}
@@ -8,6 +10,8 @@ import scala.util.Try
 
 object Main {
 	def main(args: Array[String]) {
+		println(ManagementFactory.getRuntimeMXBean.getName)
+
 		new Thread(new Runnable {
 			override def run(): Unit = {
 				while(true) {

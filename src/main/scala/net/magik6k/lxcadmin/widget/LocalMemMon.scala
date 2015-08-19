@@ -3,6 +3,7 @@ package net.magik6k.lxcadmin.widget
 import net.magik6k.jwwf.enums.Type
 import net.magik6k.jwwf.widgets.basic.{ProgressBar, TextLabel}
 import net.magik6k.jwwf.widgets.basic.panel.{Panel, Row}
+import net.magik6k.lxcadmin.util.Using
 
 import scala.io.Source
 
@@ -16,10 +17,11 @@ object MemMonProvider {
 	def refresh() {
 		var res = Map.empty[String, String]
 		val reg = """([^:]+):\s+(.+)""".r
-		Source.fromFile("/proc/meminfo").getLines().foreach {
+
+		Using(Source.fromFile("/proc/meminfo")){_.getLines().foreach {
 			case reg(key, value) => res += key -> value.trim
 			case _ =>
-		}
+		}}
 
 		total = res("MemTotal").takeWhile(_ != ' ').toLong
 		free = res("MemAvailable").takeWhile(_ != ' ').toLong
