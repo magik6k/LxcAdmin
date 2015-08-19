@@ -3,8 +3,9 @@ package net.magik6k.lxcadmin.panel
 import java.io.File
 
 import net.magik6k.jwwf.enums.Type
+import net.magik6k.jwwf.util.Tab
 import net.magik6k.jwwf.widgets.basic.TextLabel
-import net.magik6k.jwwf.widgets.basic.panel.{NamedPanel, Panel, Row}
+import net.magik6k.jwwf.widgets.basic.panel.{TabbedPanel, NamedPanel, Panel, Row}
 
 class LxcPanel extends Panel(12, 1) {
 
@@ -21,14 +22,20 @@ class LxcPanel extends Panel(12, 1) {
 	val base = filelist.filter(_.toString.endsWith("base"))
 	val systems = filelist.filter(!_.toString.endsWith("base"))
 
-	var containers = new Row(systems.length + 1)
+	var row = new Row(2)
 
-	containers.put(new NamedPanel(new TextLabel(base.mkString(", ")), "Base systems").asPanel(12))
+	row.put(new NamedPanel(new TextLabel(base.mkString(", ")), "Base systems").asPanel(12))
 
 	val containerList = systems.map(file => new Container(file.getName))
-	containerList.foreach(container => containers.put(new NamedPanel(container, "Container <b>"+container.name+"</b>", Type.INFO).asPanel(12)))
 
-	put(containers)
+	var containers = new TabbedPanel(systems.length,
+		containerList.map(container => new Tab(new NamedPanel(container, "Container <b>"+container.name+"</b>", Type.INFO), container.name, Type.SUCCESS)).toArray:_*)
+
+	row.put(containers.asPanel(12))
+
+
+
+	put(row)
 
 	def refresh() {
 		containerList.foreach(_.refresh())
