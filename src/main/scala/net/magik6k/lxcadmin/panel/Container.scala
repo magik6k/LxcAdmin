@@ -9,8 +9,12 @@ import net.magik6k.lxcadmin.util.{United, Using}
 import net.magik6k.lxcadmin.widget.MemMonProvider
 
 import scala.io.Source
+import scala.util.matching.Regex
 
-class Container(val name: String) extends Row(4) {
+class Container(val name: String) extends Row(2) {
+
+	val left = new Row(2)
+	val right = new Row(2)
 
 	// CPU
 
@@ -19,7 +23,7 @@ class Container(val name: String) extends Row(4) {
 	val barRow = new Row(cpuBars.length)
 	cpuBars.foreach{case(bar, usage) => barRow.put(bar)}
 
-	this.put(new NamedPanel(barRow, "CPU Usage", Type.SUCCESS))
+	left.put(new NamedPanel(barRow, "CPU Usage", Type.SUCCESS).asPanel(12))
 
 	// MEMORY
 
@@ -27,7 +31,7 @@ class Container(val name: String) extends Row(4) {
 	var memoryUsed = Using(Source.fromFile("/sys/fs/cgroup/memory/lxc/" + name + "/memory.usage_in_bytes"))(_.getLines().map(_.toLong).next())
 	val memoryBar = new ProgressBar(Type.SUCCESS, memoryUsed / memoryLimit.toDouble)
 	val memoryLabel = new TextLabel("RAM (0%) 0M")
-	this.put(new NamedPanel(new Row(2, memoryLabel.asPanel(3) , memoryBar.asPanel(9) ), "Memory", Type.WARNING))
+	right.put(new NamedPanel(new Row(2, memoryLabel.asPanel(3) , memoryBar.asPanel(9) ), "Memory", Type.WARNING).asPanel(12))
 
 	// NETWORK
 
@@ -50,19 +54,49 @@ class Container(val name: String) extends Row(4) {
 	val internalNetworkUploaded = new TextLabel("Uploaded: <b>" + lastInternalRX/1024/1024 + " MiB</b>")
 	val internalNetworkDownloaded = new TextLabel("Downloaded: <b>" + lastInternalTX/1024/1024 + " MiB</b>")
 
-	this.put(new NamedPanel(new Row(2,
+	right.put(new NamedPanel(new Row(2,
 		new NamedPanel(new Row(2,
 			new Row(2, externalNetworkDownload.asPanel(12), externalNetworkUpload.asPanel(12)),
 			new Row(2, externalNetworkDownloaded.asPanel(12), externalNetworkUploaded.asPanel(12))
 		), "External", Type.DEFAULT).asPanel(12), new NamedPanel(new Row(2,
 			new Row(2, internalNetworkDownload.asPanel(12), internalNetworkUpload.asPanel(12)),
 			new Row(2, internalNetworkDownloaded.asPanel(12), internalNetworkUploaded.asPanel(12))
-		), "Internal", Type.DEFAULT).asPanel(12)), "Network usage", Type.PRIMARY))
+		), "Internal", Type.DEFAULT).asPanel(12)), "Network usage", Type.PRIMARY).asPanel(12))
 
 	// I/O
 
+	val blkioRegex = """[^\s]+\s+([^\s]+)""".r
+	var lastUsedIoTime = {
+		var s = 0
+		Using(Source.fromFile(s"/sys/fs/cgroup/blkio/lxc/$name/blkio.time_recursive")){
+			_.getLines().foreach{
+				case blkioRegex(iotime) => s += iotime.toInt
+				case _ => 0
+			}
+		}
+		s
+	}
 
+	val ioTime = new TextLabel(s"IO Time: ${lastUsedIoTime/1000.0}")
+	var ioUsage = new ProgressBar(Type.WARNING, 0)
 
+	val blkioLongRegex = """(\d+:\d+) (\w+) (\d+)""".r
+	var lastIoBytes = Map.empty[String, Long]
+
+	Using(Source.fromFile(s"/sys/fs/cgroup/blkio/lxc/$name/blkio.io_service_bytes_recursive")){_.getLines().foreach {
+		case blkioLongRegex(dev, key, value) => lastIoBytes += key -> value.toLong
+		case _ =>
+	}}
+
+	val ioRead = new TextLabel(s"IO Read: <b>${United(lastIoBytes("Read"), 1024, "iB")}</b>(<b>0</b>B/s)")
+	val ioWrite = new TextLabel(s"IO Write: <b>${United(lastIoBytes("Write"), 1024, "iB")}</b>(<b>0</b>B/s)")
+
+	left.put(new NamedPanel(new Row(4, ioTime, ioUsage, ioRead, ioWrite), "IO", Type.DANGER).asPanel(12))
+
+	//
+
+	this.put(left)
+	this.put(right)
 
 	// REFRESHING
 
@@ -110,6 +144,35 @@ class Container(val name: String) extends Row(4) {
 
 		lastInternalRX = iRX
 		lastInternalTX = iTX
+
+		// IO
+
+		val usedIoTime = {
+			var s = 0
+			Using(Source.fromFile(s"/sys/fs/cgroup/blkio/lxc/$name/blkio.time_recursive")){
+				_.getLines().foreach{
+					case blkioRegex(iotime) => s += iotime.toInt
+					case _ => 0
+				}
+			}
+			s
+		}
+
+		ioTime.setText(s"IO Time: ${usedIoTime/1000.0}s")
+		ioUsage.setProgress((usedIoTime - lastUsedIoTime) / ((time - lastTime.toDouble) / 1000000))
+
+		var ioBytes = Map.empty[String, Long]
+
+		Using(Source.fromFile(s"/sys/fs/cgroup/blkio/lxc/$name/blkio.io_service_bytes_recursive")){_.getLines().foreach {
+			case blkioLongRegex(dev, key, value) => ioBytes += key -> value.toLong
+			case _ =>
+		}}
+
+		ioRead.setText(s"IO Read: <b>${United(lastIoBytes("Read"), 1024, "iB")}</b>(<b>${United(ioBytes("Read") - lastIoBytes("Read"), 1024, "iB")}</b>/s)")
+		ioWrite.setText(s"IO Write: <b>${United(lastIoBytes("Write"), 1024, "iB")}</b>(<b>${United(ioBytes("Write") - lastIoBytes("Write"), 1024, "iB")}</b>/s)")
+
+		lastUsedIoTime = usedIoTime
+		lastIoBytes = ioBytes
 
 		lastTime = time
 	}
