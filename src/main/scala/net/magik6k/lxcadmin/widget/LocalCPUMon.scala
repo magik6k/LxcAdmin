@@ -7,9 +7,10 @@ import net.magik6k.lxcadmin.util.Using
 import scala.io.Source
 
 object CPUMonProvider {
-	val loads: Array[Float] = new Array[Float](Runtime.getRuntime.availableProcessors())
-	val prevIdle: Array[Long] = new Array[Long](Runtime.getRuntime.availableProcessors())
-	val prevTotal: Array[Long] = new Array[Long](Runtime.getRuntime.availableProcessors())
+	val cores = Runtime.getRuntime.availableProcessors()
+	val loads: Array[Float] = new Array[Float](cores)
+	val prevIdle: Array[Long] = new Array[Long](cores)
+	val prevTotal: Array[Long] = new Array[Long](cores)
 
 	Using(Source.fromFile("/proc/stat")){_.getLines().map(line => line.split("\\s+"))
 		.filter(cpu => cpu(0).startsWith("cpu") && !cpu(0).equals("cpu"))

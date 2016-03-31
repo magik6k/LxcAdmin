@@ -9,7 +9,7 @@ class Client extends User {
 			rootFrame.setTitle("LXC Admin")
 			rootFrame.put(new MainPanel(this))
 		} catch {
-			case e: Exception => print(e)
+			case e: Exception => e.printStackTrace()
 		}
 	}
 }
